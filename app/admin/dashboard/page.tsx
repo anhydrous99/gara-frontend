@@ -114,6 +114,12 @@ export default function DashboardPage() {
             <Link href="/" className="text-sm tracking-wide hover:opacity-60 transition-opacity">
               View Portfolio
             </Link>
+            <Link href="/admin/dashboard" className="text-sm tracking-wide hover:opacity-60 transition-opacity">
+              Upload Images
+            </Link>
+            <Link href="/admin/albums" className="text-sm tracking-wide hover:opacity-60 transition-opacity">
+              Manage Albums
+            </Link>
             <button
               onClick={() => signOut({ callbackUrl: '/' })}
               className="border border-black px-4 py-2 hover:bg-black hover:text-white transition-colors text-sm tracking-wide"

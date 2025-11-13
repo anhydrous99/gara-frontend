@@ -39,12 +39,26 @@ export default function Home() {
       <nav className="bg-white border-b border-black">
         <div className="max-w-6xl mx-auto px-6 py-8 flex justify-between items-center">
           <h1 className="text-xl tracking-wide">Photography Portfolio</h1>
-          <Link
-            href="/admin/login"
-            className="border border-black px-4 py-2 hover:bg-black hover:text-white transition-colors text-sm tracking-wide"
-          >
-            Admin
-          </Link>
+          <div className="flex gap-4 items-center">
+            <Link
+              href="/"
+              className="text-sm tracking-wide hover:underline"
+            >
+              Gallery
+            </Link>
+            <Link
+              href="/albums"
+              className="text-sm tracking-wide hover:underline"
+            >
+              Albums
+            </Link>
+            <Link
+              href="/admin/login"
+              className="border border-black px-4 py-2 hover:bg-black hover:text-white transition-colors text-sm tracking-wide"
+            >
+              Admin
+            </Link>
+          </div>
         </div>
       </nav>
 
