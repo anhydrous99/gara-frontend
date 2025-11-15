@@ -84,7 +84,7 @@ describe('Albums API Routes (Refactored)', () => {
 
     it('should filter albums by published status when query param provided', async () => {
       // Arrange
-      const publishedAlbums = createMockAlbums(2, (i) => ({ published: true }))
+      const publishedAlbums = createMockAlbums(2, (_i) => ({ published: true }))
       mockSuccessfulBackendResponse(publishedAlbums)
 
       // Act
@@ -158,7 +158,7 @@ describe('Albums API Routes (Refactored)', () => {
       mockSuccessfulBackendResponse({})
 
       // Act
-      await POST(createPostRequest(albumData))
+      const _response = await POST(createPostRequest(albumData))
 
       // Assert
       expectBackendCalledWith('POST', API_ENDPOINTS.ALBUMS, {
@@ -176,7 +176,7 @@ describe('Albums API Routes (Refactored)', () => {
       const response = await POST(createPostRequest(invalidAlbumData))
 
       // Assert
-      const data = await expectError(response, HTTP_STATUS.BAD_REQUEST, 'Invalid album data')
+      await expectError(response, HTTP_STATUS.BAD_REQUEST, 'Invalid album data')
     })
 
     it('should handle network failures during creation', async () => {

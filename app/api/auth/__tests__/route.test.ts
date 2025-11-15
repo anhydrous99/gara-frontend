@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 
 // Mock NextAuth before importing the route
 jest.mock('next-auth', () => {
-  return jest.fn((options) => {
+  return jest.fn((_options) => {
     return {
       GET: jest.fn(),
       POST: jest.fn(),
@@ -17,11 +17,7 @@ describe('Authentication API', () => {
 
   describe('Credentials Provider', () => {
     it('should authorize with correct password', async () => {
-      const { default: NextAuth } = await import('next-auth')
-      const CredentialsProvider = require('next-auth/providers/credentials').default
-
-      // Get the auth options from the route
-      const authModule = await import('../[...nextauth]/route')
+      // Test the authentication logic without importing modules
 
       // Mock the credentials provider
       const mockCredentials = {
