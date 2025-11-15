@@ -20,9 +20,6 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install dumb-init to properly handle signals
-RUN apk add --no-cache dumb-init
-
 # Copy package files
 COPY package.json package-lock.json* yarn.lock* ./
 
@@ -43,8 +40,5 @@ EXPOSE 80
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:80', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Use dumb-init to run Node
-ENTRYPOINT ["/usr/sbin/dumb-init", "--"]
-
-# Start Next.js server
+# Start Next.js server (Next.js handles signal forwarding in standalone mode)
 CMD ["npm", "start"]
