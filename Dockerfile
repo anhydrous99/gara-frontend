@@ -31,8 +31,10 @@ RUN npm ci --only=production || npm install --production
 
 # Copy built application from builder
 COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
+
+# Create public directory (may be empty or not exist in builder)
+RUN mkdir -p ./public
 
 # Expose port
 EXPOSE 80
