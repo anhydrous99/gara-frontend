@@ -4,8 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:local": "NEXT_PUBLIC_API_URL=http://localhost:8080 NEXTAUTH_URL=http://localhost:3000 NEXTAUTH_SECRET=dev-secret-key ADMIN_PASSWORD=admin GARA_API_KEY=dev-api-key next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 80",
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
