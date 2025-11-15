@@ -55,14 +55,6 @@ jobs:
           fail_ci_if_error: false
           verbose: true
 
-      - name: Comment coverage on PR
-        if: github.event_name == 'pull_request'
-        uses: romeovs/lcov-reporter-action@v0.3.1
-        with:
-          lcov-file: ./coverage/lcov.info
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          delete-old-comments: true
-
       - name: Check coverage thresholds
         run: |
           echo "Checking coverage thresholds..."
