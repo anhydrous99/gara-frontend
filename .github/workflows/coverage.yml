@@ -27,13 +27,24 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage -- --ci --maxWorkers=2
 
-      - name: Generate coverage badge
-        uses: cicirello/jacoco-badge-generator@v2
+      - name: Generate coverage badges
         if: success()
-        with:
-          badges-directory: .github/badges
-          generate-branches-badge: true
-          generate-summary: true
+        run: |
+          # Extract coverage percentages from coverage-summary.json
+          STATEMENTS=$(node -p "require('./coverage/coverage-summary.json').total.statements.pct")
+          BRANCHES=$(node -p "require('./coverage/coverage-summary.json').total.branches.pct")
+          FUNCTIONS=$(node -p "require('./coverage/coverage-summary.json').total.functions.pct")
+          LINES=$(node -p "require('./coverage/coverage-summary.json').total.lines.pct")
+
+          # Create badges directory
+          mkdir -p .github/badges
+
+          # Generate coverage summary for workflow
+          echo "Coverage Summary:" > .github/badges/coverage-summary.txt
+          echo "Statements: ${STATEMENTS}%" >> .github/badges/coverage-summary.txt
+          echo "Branches: ${BRANCHES}%" >> .github/badges/coverage-summary.txt
+          echo "Functions: ${FUNCTIONS}%" >> .github/badges/coverage-summary.txt
+          echo "Lines: ${LINES}%" >> .github/badges/coverage-summary.txt
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
