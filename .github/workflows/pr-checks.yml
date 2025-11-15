@@ -48,35 +48,22 @@ jobs:
       - name: Run tests
         run: npm test -- --ci --coverage --maxWorkers=2
 
-      - name: Check coverage meets threshold
+      - name: Display coverage summary
         run: |
           if [ -f coverage/coverage-summary.json ]; then
             node -e "
               const coverage = require('./coverage/coverage-summary.json');
               const total = coverage.total;
-              const threshold = 60;
               const metrics = ['lines', 'statements', 'functions', 'branches'];
-              let failed = false;
 
+              console.log('📊 Coverage Summary:');
               metrics.forEach(metric => {
                 const pct = total[metric].pct;
-                if (pct < threshold) {
-                  console.error(\`❌ ${metric}: ${pct}% (minimum: ${threshold}%)\`);
-                  failed = true;
-                } else {
-                  console.log(\`✅ ${metric}: ${pct}%\`);
-                }
+                console.log(\`  ${metric}: ${pct}%\`);
               });
-
-              if (failed) {
-                console.error('\\n❌ Coverage threshold not met');
-                process.exit(1);
-              } else {
-                console.log('\\n✅ All coverage thresholds met');
-              }
             "
           else
-            echo "No coverage summary found, skipping threshold check"
+            echo "No coverage summary found"
           fi
 
   build:

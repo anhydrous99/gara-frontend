@@ -1,3 +1,7 @@
+/**
+ * @jest-environment @edge-runtime/jest-environment
+ */
+
 import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { NextRequest } from 'next/server'
 
@@ -5,8 +9,10 @@ import { NextRequest } from 'next/server'
 jest.mock('next-auth')
 
 import { POST } from '../route'
+import { getServerSession } from 'next-auth'
 
 const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>
+const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>
 
 describe('Upload API Route', () => {
   beforeEach(() => {
@@ -16,8 +22,7 @@ describe('Upload API Route', () => {
 
   describe('Authentication', () => {
     it('should reject unauthenticated requests', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce(
+      mockGetServerSession.mockResolvedValueOnce(
         null
       )
 
@@ -27,6 +32,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -38,8 +44,7 @@ describe('Upload API Route', () => {
     })
 
     it('should allow authenticated requests', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -55,6 +60,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -65,8 +71,7 @@ describe('Upload API Route', () => {
 
   describe('File Validation', () => {
     beforeEach(async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValue({
+      mockGetServerSession.mockResolvedValue({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -78,6 +83,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -98,6 +104,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -123,6 +130,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -142,6 +150,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -161,6 +170,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -180,6 +190,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -199,6 +210,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -213,6 +225,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -229,6 +242,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -241,8 +255,7 @@ describe('Upload API Route', () => {
 
   describe('Backend Integration', () => {
     beforeEach(async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValue({
+      mockGetServerSession.mockResolvedValue({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -260,6 +273,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       await POST(request)
@@ -284,6 +298,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       await POST(request)
@@ -317,6 +332,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -339,6 +355,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -357,6 +374,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -369,8 +387,7 @@ describe('Upload API Route', () => {
 
   describe('Edge Cases', () => {
     beforeEach(async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValue({
+      mockGetServerSession.mockResolvedValue({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -392,6 +409,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)
@@ -414,6 +432,7 @@ describe('Upload API Route', () => {
       const request = new NextRequest('http://localhost:3000/api/upload', {
         method: 'POST',
         body: formData,
+        headers: new Headers(),
       })
 
       const response = await POST(request)

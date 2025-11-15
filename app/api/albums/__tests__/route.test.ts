@@ -1,3 +1,7 @@
+/**
+ * @jest-environment @edge-runtime/jest-environment
+ */
+
 import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { NextRequest } from 'next/server'
 
@@ -5,8 +9,10 @@ import { NextRequest } from 'next/server'
 jest.mock('next-auth')
 
 import { GET, POST } from '../route'
+import { getServerSession } from 'next-auth'
 
 const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>
+const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>
 
 describe('Albums API Routes', () => {
   beforeEach(() => {
@@ -35,7 +41,7 @@ describe('Albums API Routes', () => {
         json: async () => mockAlbums,
       } as Response)
 
-      const request = new NextRequest('http://localhost:3000/api/albums')
+      const request = new NextRequest('http://localhost:3000/api/albums', { headers: new Headers() })
       const response = await GET(request)
       const data = await response.json()
 
@@ -58,7 +64,7 @@ describe('Albums API Routes', () => {
         json: async () => mockAlbums,
       } as Response)
 
-      const request = new NextRequest('http://localhost:3000/api/albums?published=true')
+      const request = new NextRequest('http://localhost:3000/api/albums?published=true', { headers: new Headers() })
       const response = await GET(request)
 
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/albums?published=true')
@@ -71,7 +77,7 @@ describe('Albums API Routes', () => {
         status: 500,
       } as Response)
 
-      const request = new NextRequest('http://localhost:3000/api/albums')
+      const request = new NextRequest('http://localhost:3000/api/albums', { headers: new Headers() })
       const response = await GET(request)
       const data = await response.json()
 
@@ -82,7 +88,7 @@ describe('Albums API Routes', () => {
     it('should handle network errors', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
-      const request = new NextRequest('http://localhost:3000/api/albums')
+      const request = new NextRequest('http://localhost:3000/api/albums', { headers: new Headers() })
       const response = await GET(request)
       const data = await response.json()
 
@@ -93,13 +99,13 @@ describe('Albums API Routes', () => {
 
   describe('POST /api/albums', () => {
     it('should reject unauthenticated requests', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce(
+      mockGetServerSession.mockResolvedValueOnce(
         null
       )
 
       const request = new NextRequest('http://localhost:3000/api/albums', {
         method: 'POST',
+        headers: new Headers(),
         body: JSON.stringify({
           name: 'Test Album',
           description: 'Test',
@@ -117,8 +123,7 @@ describe('Albums API Routes', () => {
     })
 
     it('should create album when authenticated', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin', email: 'admin@test.com' },
         expires: '2024-12-31',
       })
@@ -147,6 +152,7 @@ describe('Albums API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums', {
         method: 'POST',
+        headers: new Headers(),
         body: JSON.stringify(albumData),
       })
 
@@ -166,8 +172,7 @@ describe('Albums API Routes', () => {
     })
 
     it('should include API key in request headers', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -179,6 +184,7 @@ describe('Albums API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums', {
         method: 'POST',
+        headers: new Headers(),
         body: JSON.stringify({
           name: 'Test',
           description: '',
@@ -200,8 +206,7 @@ describe('Albums API Routes', () => {
     })
 
     it('should forward backend errors', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -215,6 +220,7 @@ describe('Albums API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums', {
         method: 'POST',
+        headers: new Headers(),
         body: JSON.stringify({
           name: '',
           description: '',
@@ -231,8 +237,7 @@ describe('Albums API Routes', () => {
     })
 
     it('should handle network errors during creation', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -241,6 +246,7 @@ describe('Albums API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums', {
         method: 'POST',
+        headers: new Headers(),
         body: JSON.stringify({
           name: 'Test',
           description: '',

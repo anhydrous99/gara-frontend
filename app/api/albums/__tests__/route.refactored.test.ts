@@ -1,4 +1,8 @@
 /**
+ * @jest-environment @edge-runtime/jest-environment
+ */
+
+/**
  * REFACTORED VERSION - Clean Code Principles Applied
  *
  * This is an example of how the tests should look after applying Clean Code principles.
@@ -15,6 +19,7 @@
 import { describe, it, expect, beforeEach } from '@jest/globals'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '../route'
+import { getServerSession } from 'next-auth'
 
 // Test utilities
 import {
@@ -58,6 +63,7 @@ function createGetRequest(queryParams?: string): NextRequest {
 function createPostRequest(albumData: ReturnType<typeof createAlbumData>): NextRequest {
   return new NextRequest(`${BASE_URLS.FRONTEND}${API_ENDPOINTS.ALBUMS}`, {
     method: 'POST',
+        headers: new Headers(),
     body: JSON.stringify(albumData),
   })
 }

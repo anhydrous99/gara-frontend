@@ -1,3 +1,7 @@
+/**
+ * @jest-environment @edge-runtime/jest-environment
+ */
+
 import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { NextRequest } from 'next/server'
 
@@ -5,8 +9,10 @@ import { NextRequest } from 'next/server'
 jest.mock('next-auth')
 
 import { GET, PUT, DELETE } from '../route'
+import { getServerSession } from 'next-auth'
 
 const mockFetch = global.fetch as jest.MockedFunction<typeof fetch>
+const mockGetServerSession = getServerSession as jest.MockedFunction<typeof getServerSession>
 
 describe('Individual Album API Routes', () => {
   const mockParams = { params: { id: 'album-123' } }
@@ -35,7 +41,7 @@ describe('Individual Album API Routes', () => {
         json: async () => mockAlbum,
       } as Response)
 
-      const request = new NextRequest('http://localhost:3000/api/albums/album-123')
+      const request = new NextRequest('http://localhost:3000/api/albums/album-123', { headers: new Headers() })
       const response = await GET(request, mockParams)
       const data = await response.json()
 
@@ -50,7 +56,7 @@ describe('Individual Album API Routes', () => {
         status: 404,
       } as Response)
 
-      const request = new NextRequest('http://localhost:3000/api/albums/nonexistent')
+      const request = new NextRequest('http://localhost:3000/api/albums/nonexistent', { headers: new Headers() })
       const response = await GET(request, { params: { id: 'nonexistent' } })
       const data = await response.json()
 
@@ -61,7 +67,7 @@ describe('Individual Album API Routes', () => {
     it('should handle network errors', async () => {
       mockFetch.mockRejectedValueOnce(new Error('Network error'))
 
-      const request = new NextRequest('http://localhost:3000/api/albums/album-123')
+      const request = new NextRequest('http://localhost:3000/api/albums/album-123', { headers: new Headers() })
       const response = await GET(request, mockParams)
       const data = await response.json()
 
@@ -75,7 +81,7 @@ describe('Individual Album API Routes', () => {
         json: async () => ({ album_id: 'different-id' }),
       } as Response)
 
-      const request = new NextRequest('http://localhost:3000/api/albums/different-id')
+      const request = new NextRequest('http://localhost:3000/api/albums/different-id', { headers: new Headers() })
       await GET(request, { params: { id: 'different-id' } })
 
       expect(mockFetch).toHaveBeenCalledWith('http://localhost:8080/api/albums/different-id')
@@ -84,13 +90,13 @@ describe('Individual Album API Routes', () => {
 
   describe('PUT /api/albums/[id]', () => {
     it('should reject unauthenticated requests', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce(
+      mockGetServerSession.mockResolvedValueOnce(
         null
       )
 
       const request = new NextRequest('http://localhost:3000/api/albums/album-123', {
         method: 'PUT',
+        headers: new Headers(),
         body: JSON.stringify({ name: 'Updated Album' }),
       })
 
@@ -103,8 +109,7 @@ describe('Individual Album API Routes', () => {
     })
 
     it('should update album when authenticated', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -130,6 +135,7 @@ describe('Individual Album API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums/album-123', {
         method: 'PUT',
+        headers: new Headers(),
         body: JSON.stringify(updateData),
       })
 
@@ -149,8 +155,7 @@ describe('Individual Album API Routes', () => {
     })
 
     it('should include API key in headers', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -162,6 +167,7 @@ describe('Individual Album API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums/album-123', {
         method: 'PUT',
+        headers: new Headers(),
         body: JSON.stringify({ name: 'Test' }),
       })
 
@@ -178,8 +184,7 @@ describe('Individual Album API Routes', () => {
     })
 
     it('should forward backend errors', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -193,6 +198,7 @@ describe('Individual Album API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums/album-123', {
         method: 'PUT',
+        headers: new Headers(),
         body: JSON.stringify({ name: '' }),
       })
 
@@ -204,8 +210,7 @@ describe('Individual Album API Routes', () => {
     })
 
     it('should handle network errors', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -214,6 +219,7 @@ describe('Individual Album API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums/album-123', {
         method: 'PUT',
+        headers: new Headers(),
         body: JSON.stringify({ name: 'Test' }),
       })
 
@@ -227,13 +233,13 @@ describe('Individual Album API Routes', () => {
 
   describe('DELETE /api/albums/[id]', () => {
     it('should reject unauthenticated requests', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce(
+      mockGetServerSession.mockResolvedValueOnce(
         null
       )
 
       const request = new NextRequest('http://localhost:3000/api/albums/album-123', {
         method: 'DELETE',
+        headers: new Headers(),
       })
 
       const response = await DELETE(request, mockParams)
@@ -245,8 +251,7 @@ describe('Individual Album API Routes', () => {
     })
 
     it('should delete album when authenticated', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -259,6 +264,7 @@ describe('Individual Album API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums/album-123', {
         method: 'DELETE',
+        headers: new Headers(),
       })
 
       const response = await DELETE(request, mockParams)
@@ -275,8 +281,7 @@ describe('Individual Album API Routes', () => {
     })
 
     it('should include API key in headers', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -288,6 +293,7 @@ describe('Individual Album API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums/album-123', {
         method: 'DELETE',
+        headers: new Headers(),
       })
 
       await DELETE(request, mockParams)
@@ -303,8 +309,7 @@ describe('Individual Album API Routes', () => {
     })
 
     it('should handle 404 errors from backend', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -318,6 +323,7 @@ describe('Individual Album API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums/nonexistent', {
         method: 'DELETE',
+        headers: new Headers(),
       })
 
       const response = await DELETE(request, { params: { id: 'nonexistent' } })
@@ -328,8 +334,7 @@ describe('Individual Album API Routes', () => {
     })
 
     it('should handle network errors', async () => {
-      const { getServerSession } = await import('next-auth')
-      ;(getServerSession as jest.MockedFunction<typeof getServerSession>).mockResolvedValueOnce({
+      mockGetServerSession.mockResolvedValueOnce({
         user: { id: '1', name: 'Admin' },
         expires: '2024-12-31',
       })
@@ -338,6 +343,7 @@ describe('Individual Album API Routes', () => {
 
       const request = new NextRequest('http://localhost:3000/api/albums/album-123', {
         method: 'DELETE',
+        headers: new Headers(),
       })
 
       const response = await DELETE(request, mockParams)
