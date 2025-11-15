@@ -52,12 +52,3 @@ jobs:
           NEXTAUTH_SECRET: test-secret
           AWS_REGION: us-east-1
           S3_BUCKET_NAME: test-bucket
-
-      - name: Comment test results on PR
-        if: github.event_name == 'pull_request' && always()
-        uses: dorny/test-reporter@v1
-        with:
-          name: Test Results
-          path: coverage/junit.xml
-          reporter: jest-junit
-          fail-on-error: false
