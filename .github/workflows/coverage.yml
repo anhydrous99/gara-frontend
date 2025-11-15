@@ -27,13 +27,23 @@ jobs:
       - name: Run tests with coverage
         run: npm run test:coverage -- --ci --maxWorkers=2
 
-      - name: Generate coverage badge
-        uses: cicirello/jacoco-badge-generator@v2
+      - name: Display coverage summary
         if: success()
-        with:
-          badges-directory: .github/badges
-          generate-branches-badge: true
-          generate-summary: true
+        run: |
+          echo "📊 Test Coverage Results:"
+          if [ -f coverage/coverage-summary.json ]; then
+            node -e "
+              const coverage = require('./coverage/coverage-summary.json');
+              const total = coverage.total;
+              console.log('');
+              console.log('Statements: ' + total.statements.pct + '%');
+              console.log('Branches: ' + total.branches.pct + '%');
+              console.log('Functions: ' + total.functions.pct + '%');
+              console.log('Lines: ' + total.lines.pct + '%');
+            "
+          else
+            echo "Coverage summary not available"
+          fi
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v3
@@ -44,14 +54,6 @@ jobs:
           name: codecov-coverage
           fail_ci_if_error: false
           verbose: true
-
-      - name: Comment coverage on PR
-        if: github.event_name == 'pull_request'
-        uses: romeovs/lcov-reporter-action@v0.3.1
-        with:
-          lcov-file: ./coverage/lcov.info
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          delete-old-comments: true
 
       - name: Check coverage thresholds
         run: |
