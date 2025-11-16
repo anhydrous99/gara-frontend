@@ -16,10 +16,13 @@
  * - Much shorter and more readable
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals'
+// Mock dependencies before imports
+jest.mock('@/lib/observability')
+jest.mock('@/lib/api')
+
+import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { NextRequest } from 'next/server'
 import { GET, POST } from '../route'
-import { getServerSession } from 'next-auth'
 
 // Test utilities
 import {

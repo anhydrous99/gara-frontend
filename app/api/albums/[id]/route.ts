@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
+import { getRequestLogger } from '@/lib/api'
+import { handleApiError, trackOperation } from '@/lib/observability'
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL
 const API_KEY = process.env.GARA_API_KEY
@@ -9,23 +11,29 @@ export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const logger = getRequestLogger(request)
+
   try {
-    const response = await fetch(`${BACKEND_URL}/api/albums/${params.id}`)
+    logger.debug('Fetching album details', { albumId: params.id })
+
+    const response = await trackOperation('FetchAlbum', async () => {
+      return await fetch(`${BACKEND_URL}/api/albums/${params.id}`)
+    })
 
     if (!response.ok) {
-      return NextResponse.json(
-        { error: 'Album not found' },
-        { status: 404 }
-      )
+      logger.warn('Album not found', { albumId: params.id, statusCode: response.status })
+      const error = await response.json()
+      return NextResponse.json(error, { status: response.status })
     }
 
     const data = await response.json()
+    logger.info('Album fetched successfully', { albumId: params.id })
     return NextResponse.json(data)
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, {
+      operation: 'GET /api/albums/[id]',
+      albumId: params.id,
+    })
   }
 }
 
@@ -34,35 +42,43 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const logger = getRequestLogger(request)
+
   try {
     const session = await getServerSession()
     if (!session) {
+      logger.warn('Unauthorized album update attempt', { albumId: params.id })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const body = await request.json()
+    logger.debug('Updating album', { albumId: params.id, updates: Object.keys(body) })
 
-    const response = await fetch(`${BACKEND_URL}/api/albums/${params.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-Key': API_KEY || ''
-      },
-      body: JSON.stringify(body)
+    const response = await trackOperation('UpdateAlbum', async () => {
+      return await fetch(`${BACKEND_URL}/api/albums/${params.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': API_KEY || ''
+        },
+        body: JSON.stringify(body)
+      })
     })
 
     if (!response.ok) {
+      logger.warn('Album update failed', { albumId: params.id, statusCode: response.status })
       const error = await response.json()
       return NextResponse.json(error, { status: response.status })
     }
 
     const data = await response.json()
+    logger.info('Album updated successfully', { albumId: params.id })
     return NextResponse.json(data)
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, {
+      operation: 'PUT /api/albums/[id]',
+      albumId: params.id,
+    })
   }
 }
 
@@ -71,30 +87,39 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const logger = getRequestLogger(request)
+
   try {
     const session = await getServerSession()
     if (!session) {
+      logger.warn('Unauthorized album deletion attempt', { albumId: params.id })
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const response = await fetch(`${BACKEND_URL}/api/albums/${params.id}`, {
-      method: 'DELETE',
-      headers: {
-        'X-API-Key': API_KEY || ''
-      }
+    logger.info('Deleting album', { albumId: params.id })
+
+    const response = await trackOperation('DeleteAlbum', async () => {
+      return await fetch(`${BACKEND_URL}/api/albums/${params.id}`, {
+        method: 'DELETE',
+        headers: {
+          'X-API-Key': API_KEY || ''
+        }
+      })
     })
 
     if (!response.ok) {
+      logger.warn('Album deletion failed', { albumId: params.id, statusCode: response.status })
       const error = await response.json()
       return NextResponse.json(error, { status: response.status })
     }
 
     const data = await response.json()
+    logger.info('Album deleted successfully', { albumId: params.id })
     return NextResponse.json(data)
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return handleApiError(error, {
+      operation: 'DELETE /api/albums/[id]',
+      albumId: params.id,
+    })
   }
 }
