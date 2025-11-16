@@ -11,6 +11,7 @@ const mockLogger = {
   warn: jest.fn(),
   error: jest.fn(),
   fatal: jest.fn(),
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   child: jest.fn(function(this: any) { return this }),
 }
 
@@ -24,10 +25,12 @@ export const metricsClient = {
   trackError: jest.fn(),
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const trackOperation = jest.fn(async (_name: string, operation: () => Promise<any>) => {
   return await operation()
 })
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const handleApiError = jest.fn((error: unknown, context: any, statusCode = 500) => {
   const message = error instanceof Error ? error.message : 'Internal server error'
   return NextResponse.json(

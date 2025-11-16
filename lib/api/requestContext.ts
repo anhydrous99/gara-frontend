@@ -4,7 +4,7 @@
  */
 
 import { NextRequest } from 'next/server'
-import { logger, createRequestLogger, metricsClient } from '@/lib/observability'
+import { createRequestLogger, metricsClient } from '@/lib/observability'
 import { ILogger, RequestContext } from '@/lib/observability/types'
 
 /**

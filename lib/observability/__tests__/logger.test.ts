@@ -8,8 +8,6 @@
 
 import { describe, it, expect, jest, beforeEach } from '@jest/globals'
 import { Logger, BrowserLogger } from '../logger'
-import { LogLevel } from '../types'
-import pino from 'pino'
 
 // Mock pino
 jest.mock('pino', () => {
