@@ -16,24 +16,24 @@ export async function GET(
   try {
     logger.debug('Fetching album details', { albumId: params.id })
 
-    const data = await trackOperation('FetchAlbum', async () => {
-      const response = await fetch(`${BACKEND_URL}/api/albums/${params.id}`)
-
-      if (!response.ok) {
-        logger.warn('Album not found', { albumId: params.id, statusCode: response.status })
-        throw new Error('Album not found')
-      }
-
-      return response.json()
+    const response = await trackOperation('FetchAlbum', async () => {
+      return await fetch(`${BACKEND_URL}/api/albums/${params.id}`)
     })
 
+    if (!response.ok) {
+      logger.warn('Album not found', { albumId: params.id, statusCode: response.status })
+      const error = await response.json()
+      return NextResponse.json(error, { status: response.status })
+    }
+
+    const data = await response.json()
     logger.info('Album fetched successfully', { albumId: params.id })
     return NextResponse.json(data)
   } catch (error) {
     return handleApiError(error, {
       operation: 'GET /api/albums/[id]',
       albumId: params.id,
-    }, 404)
+    })
   }
 }
 
@@ -54,8 +54,8 @@ export async function PUT(
     const body = await request.json()
     logger.debug('Updating album', { albumId: params.id, updates: Object.keys(body) })
 
-    const data = await trackOperation('UpdateAlbum', async () => {
-      const response = await fetch(`${BACKEND_URL}/api/albums/${params.id}`, {
+    const response = await trackOperation('UpdateAlbum', async () => {
+      return await fetch(`${BACKEND_URL}/api/albums/${params.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -63,16 +63,15 @@ export async function PUT(
         },
         body: JSON.stringify(body)
       })
-
-      if (!response.ok) {
-        const error = await response.json()
-        logger.warn('Album update failed', { albumId: params.id, statusCode: response.status })
-        throw new Error(error.message ?? 'Album update failed')
-      }
-
-      return response.json()
     })
 
+    if (!response.ok) {
+      logger.warn('Album update failed', { albumId: params.id, statusCode: response.status })
+      const error = await response.json()
+      return NextResponse.json(error, { status: response.status })
+    }
+
+    const data = await response.json()
     logger.info('Album updated successfully', { albumId: params.id })
     return NextResponse.json(data)
   } catch (error) {
@@ -99,23 +98,22 @@ export async function DELETE(
 
     logger.info('Deleting album', { albumId: params.id })
 
-    const data = await trackOperation('DeleteAlbum', async () => {
-      const response = await fetch(`${BACKEND_URL}/api/albums/${params.id}`, {
+    const response = await trackOperation('DeleteAlbum', async () => {
+      return await fetch(`${BACKEND_URL}/api/albums/${params.id}`, {
         method: 'DELETE',
         headers: {
           'X-API-Key': API_KEY || ''
         }
       })
-
-      if (!response.ok) {
-        const error = await response.json()
-        logger.warn('Album deletion failed', { albumId: params.id, statusCode: response.status })
-        throw new Error(error.message ?? 'Album deletion failed')
-      }
-
-      return response.json()
     })
 
+    if (!response.ok) {
+      logger.warn('Album deletion failed', { albumId: params.id, statusCode: response.status })
+      const error = await response.json()
+      return NextResponse.json(error, { status: response.status })
+    }
+
+    const data = await response.json()
     logger.info('Album deleted successfully', { albumId: params.id })
     return NextResponse.json(data)
   } catch (error) {

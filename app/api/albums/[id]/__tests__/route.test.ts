@@ -51,9 +51,11 @@ describe('Individual Album API Routes', () => {
     })
 
     it('should return 404 for non-existent album', async () => {
+      const mockError = { error: 'Album not found' }
       mockFetch.mockResolvedValueOnce({
         ok: false,
         status: 404,
+        json: async () => mockError,
       } as Response)
 
       const request = new NextRequest('http://localhost:3000/api/albums/nonexistent', { headers: new Headers() })
@@ -61,7 +63,7 @@ describe('Individual Album API Routes', () => {
       const data = await response.json()
 
       expect(response.status).toBe(404)
-      expect(data).toHaveProperty('error', 'Album not found')
+      expect(data).toEqual(mockError)
     })
 
     it('should handle network errors', async () => {

@@ -6,25 +6,19 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals'
 import { CloudWatchMetricsClient, NoOpMetricsClient, trackOperation } from '../metrics'
 import { MetricUnit } from '../types'
+import { mockSend } from '@/__mocks__/@aws-sdk/client-cloudwatch'
 
 // Mock AWS SDK
 jest.mock('@aws-sdk/client-cloudwatch')
 
 describe('CloudWatchMetricsClient', () => {
-  let mockSend: jest.MockedFunction<any>
   let client: CloudWatchMetricsClient
 
-  beforeEach(async () => {
+  beforeEach(() => {
     jest.clearAllMocks()
     jest.useFakeTimers()
 
-    mockSend = jest.fn().mockResolvedValue({})
-
-    // Mock CloudWatchClient constructor
-    const { CloudWatchClient } = await import('@aws-sdk/client-cloudwatch')
-    ;(CloudWatchClient as unknown as jest.Mock).mockImplementation(() => ({
-      send: mockSend,
-    }))
+    mockSend.mockResolvedValue({})
 
     client = new CloudWatchMetricsClient('TestNamespace', 'us-east-1', true)
   })

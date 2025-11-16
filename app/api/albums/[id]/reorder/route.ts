@@ -26,8 +26,8 @@ export async function PUT(
       imageCount: body.imageIds?.length ?? 0,
     })
 
-    const data = await trackOperation('ReorderAlbumImages', async () => {
-      const response = await fetch(
+    const response = await trackOperation('ReorderAlbumImages', async () => {
+      return await fetch(
         `${BACKEND_URL}/api/albums/${params.id}/reorder`,
         {
           method: 'PUT',
@@ -38,16 +38,15 @@ export async function PUT(
           body: JSON.stringify(body)
         }
       )
-
-      if (!response.ok) {
-        const error = await response.json()
-        logger.warn('Reorder failed', { albumId: params.id, statusCode: response.status })
-        throw new Error(error.message ?? 'Reorder failed')
-      }
-
-      return response.json()
     })
 
+    if (!response.ok) {
+      logger.warn('Reorder failed', { albumId: params.id, statusCode: response.status })
+      const error = await response.json()
+      return NextResponse.json(error, { status: response.status })
+    }
+
+    const data = await response.json()
     logger.info('Album images reordered successfully', { albumId: params.id })
     return NextResponse.json(data)
   } catch (error) {
