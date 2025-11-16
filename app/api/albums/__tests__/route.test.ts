@@ -5,8 +5,10 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals'
 import { NextRequest } from 'next/server'
 
-// Use manual mock from __mocks__ directory
+// Use manual mocks from __mocks__ directories
 jest.mock('next-auth')
+jest.mock('@/lib/observability')
+jest.mock('@/lib/api')
 
 import { GET, POST } from '../route'
 import { getServerSession } from 'next-auth'
@@ -82,7 +84,7 @@ describe('Albums API Routes', () => {
       const data = await response.json()
 
       expect(response.status).toBe(500)
-      expect(data).toHaveProperty('error', 'Failed to fetch albums')
+      expect(data).toHaveProperty('error', 'Internal server error')
     })
 
     it('should handle network errors', async () => {

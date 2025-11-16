@@ -66,8 +66,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     logger.debug('Creating new album', { albumName: body.name })
 
-    const data = await trackOperation('CreateAlbum', async () => {
-      const response = await fetch(`${BACKEND_URL}/api/albums`, {
+    const response = await trackOperation('CreateAlbum', async () => {
+      return await fetch(`${BACKEND_URL}/api/albums`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -75,18 +75,17 @@ export async function POST(request: NextRequest) {
         },
         body: JSON.stringify(body)
       })
-
-      if (!response.ok) {
-        logger.warn('Backend album creation failed', {
-          statusCode: response.status,
-        })
-        const error = await response.json()
-        throw new Error(error.message ?? 'Album creation failed')
-      }
-
-      return response.json()
     })
 
+    if (!response.ok) {
+      logger.warn('Backend album creation failed', {
+        statusCode: response.status,
+      })
+      const error = await response.json()
+      return NextResponse.json(error, { status: response.status })
+    }
+
+    const data = await response.json()
     const duration = Date.now() - startTime
     logger.info('Album created successfully', {
       albumId: data.id,
