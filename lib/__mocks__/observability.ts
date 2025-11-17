@@ -45,7 +45,6 @@ export const observabilityConfig = {
   enableRequestLogging: true,
   cloudWatch: {
     namespace: 'Test',
-    region: 'us-east-1',
     enabled: false,
   },
 }

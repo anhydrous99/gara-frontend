@@ -64,42 +64,64 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    logger.debug('Uploading file to backend', {
+    logger.debug('Uploading file', {
       fileName: file.name,
       fileSize: file.size,
       fileType: file.type,
     })
 
     const result = await trackOperation('UploadImage', async () => {
-      // Forward to gara-image service
-      const garaImageUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-      const uploadUrl = `${garaImageUrl}/api/images/upload`
+      // Check if we should use local storage or forward to backend
+      const useLocalStorage = process.env.USE_LOCAL_STORAGE === 'true'
 
-      const uploadFormData = new FormData()
-      uploadFormData.append('image', file)
+      if (useLocalStorage) {
+        // Handle upload locally
+        const { localFileStorage } = await import('@/lib/storage/local-file-storage')
+        const buffer = await file.arrayBuffer()
+        const uint8Array = new Uint8Array(buffer)
 
-      // Add API key header if configured
-      const headers: Record<string, string> = {}
-      if (process.env.GARA_API_KEY) {
-        headers['X-API-Key'] = process.env.GARA_API_KEY
-      }
+        // Generate a unique filename
+        const timestamp = Date.now()
+        const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_')
+        const filename = `${timestamp}_${sanitizedName}`
 
-      const response = await fetch(uploadUrl, {
-        method: 'POST',
-        body: uploadFormData,
-        headers,
-      })
+        const uploadedImage = await localFileStorage.uploadImage(uint8Array, filename)
 
-      if (!response.ok) {
-        const error = await response.text()
-        logger.error('Backend upload failed', undefined, {
-          statusCode: response.status,
-          error,
+        return {
+          success: true,
+          image: uploadedImage,
+        }
+      } else {
+        // Forward to gara-image service
+        const garaImageUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
+        const uploadUrl = `${garaImageUrl}/api/images/upload`
+
+        const uploadFormData = new FormData()
+        uploadFormData.append('image', file)
+
+        // Add API key header if configured
+        const headers: Record<string, string> = {}
+        if (process.env.GARA_API_KEY) {
+          headers['X-API-Key'] = process.env.GARA_API_KEY
+        }
+
+        const response = await fetch(uploadUrl, {
+          method: 'POST',
+          body: uploadFormData,
+          headers,
         })
-        throw new Error(error || 'Upload failed')
-      }
 
-      return response.json()
+        if (!response.ok) {
+          const error = await response.text()
+          logger.error('Backend upload failed', undefined, {
+            statusCode: response.status,
+            error,
+          })
+          throw new Error(error || 'Upload failed')
+        }
+
+        return response.json()
+      }
     })
 
     const duration = Date.now() - startTime

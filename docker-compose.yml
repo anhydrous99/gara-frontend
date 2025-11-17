@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gara-frontend
+    ports:
+      - "3000:80"
+    environment:
+      # Application Configuration
+      NODE_ENV: production
+      PORT: 80
+
+      # Backend API (optional - only if USE_LOCAL_STORAGE=false)
+      # NEXT_PUBLIC_API_URL: http://backend:8080
+      # GARA_API_KEY: your-api-key-here
+
+      # Authentication
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-nextauth-secret-change-in-production}
+      NEXTAUTH_URL: http://localhost:3000
+
+      # Local Storage Configuration
+      USE_LOCAL_STORAGE: "true"
+      UPLOADS_DIR: /app/public/uploads
+      UPLOADS_PUBLIC_PATH: /uploads
+
+      # Observability Configuration
+      LOG_LEVEL: info
+      ENABLE_REQUEST_LOGGING: "true"
+      ENABLE_METRICS: "false"
+      METRICS_BACKEND: console
+    volumes:
+      # Persist uploaded images
+      - ./public/uploads:/app/public/uploads
+      # Optional: Persist logs if using file-based metrics
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # Uncomment if you want to run a local backend service as well
+  # backend:
+  #   image: your-backend-image:latest
+  #   container_name: gara-backend
+  #   ports:
+  #     - "8080:8080"
+  #   environment:
+  #     - API_KEY=your-api-key-here
+  #   restart: unless-stopped
+
+# Create networks for service communication
+networks:
+  default:
+    name: gara-network

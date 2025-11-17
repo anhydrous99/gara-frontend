@@ -8,10 +8,10 @@ import { ILogger, LogContext, LogLevel } from './types'
 import { observabilityConfig } from './config'
 
 /**
- * Creates a Pino logger instance configured for ECS/CloudWatch
+ * Creates a Pino logger instance for structured logging
  *
  * Configuration:
- * - JSON output to stdout (captured by ECS awslogs driver)
+ * - JSON output to stdout (can be captured by log aggregation tools)
  * - Timestamp in ISO format
  * - Pretty printing in development
  * - Redaction of sensitive fields
