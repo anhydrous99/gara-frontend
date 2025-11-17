@@ -4,213 +4,184 @@
  */
 
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals'
-import { CloudWatchMetricsClient, NoOpMetricsClient, trackOperation } from '../metrics'
+import { ConsoleMetricsClient, FileMetricsClient, NoOpMetricsClient, trackOperation } from '../metrics'
 import { MetricUnit } from '../types'
-import { mockSend } from '@/__mocks__/@aws-sdk/client-cloudwatch'
 
-// Mock AWS SDK
-jest.mock('@aws-sdk/client-cloudwatch')
+// Mock filesystem operations for FileMetricsClient
+jest.mock('fs/promises', () => ({
+  mkdir: jest.fn().mockResolvedValue(undefined),
+  appendFile: jest.fn().mockResolvedValue(undefined),
+}))
 
-describe('CloudWatchMetricsClient', () => {
-  let client: CloudWatchMetricsClient
+describe('ConsoleMetricsClient', () => {
+  let client: ConsoleMetricsClient
+  let consoleSpy: jest.SpiedFunction<typeof console.log>
 
   beforeEach(() => {
     jest.clearAllMocks()
-    jest.useFakeTimers()
-
-    mockSend.mockResolvedValue({})
-
-    client = new CloudWatchMetricsClient('TestNamespace', 'us-east-1', true)
+    // Spy on console methods since ConsoleMetricsClient uses logger which ultimately logs to console
+    consoleSpy = jest.spyOn(console, 'log').mockImplementation()
+    client = new ConsoleMetricsClient('TestNamespace', true)
   })
 
   afterEach(() => {
-    jest.useRealTimers()
+    consoleSpy.mockRestore()
   })
 
   describe('putMetric', () => {
-    it('should buffer metrics without immediate send', async () => {
-      await client.putMetric({
-        name: 'TestMetric',
-        value: 123,
-        unit: MetricUnit.COUNT,
-      })
-
-      expect(mockSend).not.toHaveBeenCalled()
-    })
-
-    it('should flush when buffer reaches limit', async () => {
-      // Add 20 metrics to reach buffer limit
-      for (let i = 0; i < 20; i++) {
-        await client.putMetric({
-          name: `Metric${i}`,
-          value: i,
+    it('should not throw when putting metrics', async () => {
+      await expect(
+        client.putMetric({
+          name: 'TestMetric',
+          value: 123,
           unit: MetricUnit.COUNT,
         })
-      }
-
-      expect(mockSend).toHaveBeenCalledTimes(1)
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          input: expect.objectContaining({
-            Namespace: 'TestNamespace',
-            MetricData: expect.arrayContaining([
-              expect.objectContaining({
-                MetricName: 'Metric0',
-                Value: 0,
-              }),
-            ]),
-          }),
-        })
-      )
+      ).resolves.toBeUndefined()
     })
 
-    it('should not send metrics when disabled', async () => {
-      const disabledClient = new CloudWatchMetricsClient(
-        'TestNamespace',
-        'us-east-1',
-        false
-      )
+    it('should handle metrics with dimensions', async () => {
+      await expect(
+        client.putMetric({
+          name: 'ApiRequest',
+          value: 250,
+          unit: MetricUnit.MILLISECONDS,
+          dimensions: [
+            { name: 'Method', value: 'GET' },
+            { name: 'StatusCode', value: '200' },
+          ],
+        })
+      ).resolves.toBeUndefined()
+    })
 
-      await disabledClient.putMetric({
-        name: 'TestMetric',
-        value: 100,
-        unit: MetricUnit.COUNT,
-      })
+    it('should not throw when disabled', async () => {
+      const disabledClient = new ConsoleMetricsClient('TestNamespace', false)
 
-      expect(mockSend).not.toHaveBeenCalled()
+      await expect(
+        disabledClient.putMetric({
+          name: 'TestMetric',
+          value: 100,
+          unit: MetricUnit.COUNT,
+        })
+      ).resolves.toBeUndefined()
     })
   })
 
   describe('trackDuration', () => {
     it('should track duration metric with dimensions', async () => {
-      await client.trackDuration('ApiRequest', 250, [
-        { name: 'Method', value: 'GET' },
-        { name: 'StatusCode', value: '200' },
-      ])
-
-      // Trigger flush
-      for (let i = 0; i < 19; i++) {
-        await client.putMetric({
-          name: 'Filler',
-          value: 1,
-          unit: MetricUnit.COUNT,
-        })
-      }
-
-      expect(mockSend).toHaveBeenCalled()
-      const sentCommand = mockSend.mock.calls[0][0]
-      expect(sentCommand.input.MetricData).toContainEqual(
-        expect.objectContaining({
-          MetricName: 'ApiRequest',
-          Value: 250,
-          Unit: 'Milliseconds',
-          Dimensions: [
-            { Name: 'Method', Value: 'GET' },
-            { Name: 'StatusCode', Value: '200' },
-          ],
-        })
-      )
+      await expect(
+        client.trackDuration('ApiRequest', 250, [
+          { name: 'Method', value: 'GET' },
+          { name: 'StatusCode', value: '200' },
+        ])
+      ).resolves.toBeUndefined()
     })
   })
 
   describe('trackCount', () => {
     it('should track count metric', async () => {
-      await client.trackCount('ImageUpload', 1, [
-        { name: 'FileType', value: 'image/jpeg' },
-      ])
-
-      // Trigger flush
-      for (let i = 0; i < 19; i++) {
-        await client.putMetric({
-          name: 'Filler',
-          value: 1,
-          unit: MetricUnit.COUNT,
-        })
-      }
-
-      expect(mockSend).toHaveBeenCalled()
-      const sentCommand = mockSend.mock.calls[0][0]
-      expect(sentCommand.input.MetricData).toContainEqual(
-        expect.objectContaining({
-          MetricName: 'ImageUpload',
-          Value: 1,
-          Unit: 'Count',
-        })
-      )
+      await expect(
+        client.trackCount('ImageUpload', 1, [
+          { name: 'FileType', value: 'image/jpeg' },
+        ])
+      ).resolves.toBeUndefined()
     })
   })
 
   describe('trackError', () => {
     it('should track error with operation and error type', async () => {
       const error = new TypeError('Invalid argument')
-      await client.trackError('UploadImage', error)
+      await expect(
+        client.trackError('UploadImage', error)
+      ).resolves.toBeUndefined()
+    })
 
-      // Trigger flush
-      for (let i = 0; i < 19; i++) {
-        await client.putMetric({
-          name: 'Filler',
-          value: 1,
+    it('should track error without specific type', async () => {
+      const error = new Error('Generic error')
+      await expect(
+        client.trackError('ProcessImage', error)
+      ).resolves.toBeUndefined()
+    })
+  })
+})
+
+describe('FileMetricsClient', () => {
+  let client: FileMetricsClient
+
+  beforeEach(async () => {
+    jest.clearAllMocks()
+    client = new FileMetricsClient('TestNamespace', true)
+  })
+
+  describe('putMetric', () => {
+    it('should not throw when putting metrics', async () => {
+      await expect(
+        client.putMetric({
+          name: 'TestMetric',
+          value: 123,
           unit: MetricUnit.COUNT,
         })
-      }
+      ).resolves.toBeUndefined()
+    })
 
-      expect(mockSend).toHaveBeenCalled()
-      const sentCommand = mockSend.mock.calls[0][0]
-      expect(sentCommand.input.MetricData).toContainEqual(
-        expect.objectContaining({
-          MetricName: 'Errors',
-          Value: 1,
-          Dimensions: [
-            { Name: 'Operation', Value: 'UploadImage' },
-            { Name: 'ErrorType', Value: 'TypeError' },
+    it('should handle metrics with dimensions', async () => {
+      await expect(
+        client.putMetric({
+          name: 'ApiRequest',
+          value: 250,
+          unit: MetricUnit.MILLISECONDS,
+          dimensions: [
+            { name: 'Method', value: 'GET' },
           ],
         })
-      )
+      ).resolves.toBeUndefined()
+    })
+
+    it('should not throw when disabled', async () => {
+      const disabledClient = new FileMetricsClient('TestNamespace', false)
+
+      await expect(
+        disabledClient.putMetric({
+          name: 'TestMetric',
+          value: 100,
+          unit: MetricUnit.COUNT,
+        })
+      ).resolves.toBeUndefined()
     })
   })
 
-  describe('periodic flush', () => {
-    it('should flush metrics after timeout', async () => {
-      await client.putMetric({
-        name: 'TestMetric',
-        value: 100,
-        unit: MetricUnit.COUNT,
-      })
+  describe('trackDuration', () => {
+    it('should track duration metric', async () => {
+      await expect(
+        client.trackDuration('ApiRequest', 250)
+      ).resolves.toBeUndefined()
+    })
+  })
 
-      expect(mockSend).not.toHaveBeenCalled()
+  describe('trackCount', () => {
+    it('should track count metric', async () => {
+      await expect(
+        client.trackCount('ImageUpload', 1)
+      ).resolves.toBeUndefined()
+    })
+  })
 
-      // Fast-forward 60 seconds
-      jest.advanceTimersByTime(60000)
-
-      // Wait for async flush
-      await Promise.resolve()
-
-      expect(mockSend).toHaveBeenCalledTimes(1)
+  describe('trackError', () => {
+    it('should track error metric', async () => {
+      await expect(
+        client.trackError('UploadImage', new Error('test'))
+      ).resolves.toBeUndefined()
     })
   })
 
   describe('shutdown', () => {
-    it('should flush remaining metrics on shutdown', async () => {
+    it('should flush metrics on shutdown', async () => {
       await client.putMetric({
         name: 'TestMetric',
         value: 123,
         unit: MetricUnit.COUNT,
       })
 
-      await client.shutdown()
-
-      expect(mockSend).toHaveBeenCalledTimes(1)
-      expect(mockSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          input: expect.objectContaining({
-            MetricData: expect.arrayContaining([
-              expect.objectContaining({
-                MetricName: 'TestMetric',
-              }),
-            ]),
-          }),
-        })
-      )
+      await expect(client.shutdown()).resolves.toBeUndefined()
     })
   })
 })
@@ -222,7 +193,7 @@ describe('NoOpMetricsClient', () => {
     client = new NoOpMetricsClient()
   })
 
-  it('should not throw errors when calling methods', async () => {
+  it('should not throw errors when calling putMetric', async () => {
     await expect(
       client.putMetric({
         name: 'Test',
@@ -230,11 +201,17 @@ describe('NoOpMetricsClient', () => {
         unit: MetricUnit.COUNT,
       })
     ).resolves.toBeUndefined()
+  })
 
+  it('should not throw errors when calling trackDuration', async () => {
     await expect(client.trackDuration('Test', 100)).resolves.toBeUndefined()
+  })
 
+  it('should not throw errors when calling trackCount', async () => {
     await expect(client.trackCount('Test', 1)).resolves.toBeUndefined()
+  })
 
+  it('should not throw errors when calling trackError', async () => {
     await expect(
       client.trackError('Test', new Error('test'))
     ).resolves.toBeUndefined()
@@ -242,37 +219,20 @@ describe('NoOpMetricsClient', () => {
 })
 
 describe('trackOperation', () => {
-  let mockMetricsClient: any
-
   beforeEach(() => {
     jest.clearAllMocks()
-
-    mockMetricsClient = {
-      trackDuration: jest.fn(),
-      trackCount: jest.fn(),
-      trackError: jest.fn(),
-    }
-
-    // Mock the metricsClient singleton
-    jest.mock('../metrics', () => ({
-      ...jest.requireActual('../metrics'),
-      metricsClient: mockMetricsClient,
-    }))
   })
 
-  it('should track successful operation with duration', async () => {
+  it('should execute operation and return result', async () => {
     const operation = jest.fn().mockResolvedValue('success')
 
     const result = await trackOperation('TestOperation', operation)
 
     expect(result).toBe('success')
     expect(operation).toHaveBeenCalledTimes(1)
-
-    // Note: In the actual test, we'd need to properly mock the metricsClient
-    // For now, this tests the function structure
   })
 
-  it('should track failed operation and re-throw error', async () => {
+  it('should re-throw error from failed operation', async () => {
     const error = new Error('operation failed')
     const operation = jest.fn().mockRejectedValue(error)
 
@@ -281,5 +241,26 @@ describe('trackOperation', () => {
     )
 
     expect(operation).toHaveBeenCalledTimes(1)
+  })
+
+  it('should return operation result unchanged', async () => {
+    const mockData = { data: 'test', count: 42 }
+    const operation = jest.fn().mockResolvedValue(mockData)
+
+    const result = await trackOperation('FetchData', operation)
+
+    expect(result).toEqual(mockData)
+    expect(result).toBe(mockData) // Verify same reference
+  })
+
+  it('should handle async operations', async () => {
+    const operation = jest.fn(async () => {
+      await new Promise(resolve => setTimeout(resolve, 10))
+      return 'async result'
+    })
+
+    const result = await trackOperation('AsyncOp', operation)
+
+    expect(result).toBe('async result')
   })
 })

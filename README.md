@@ -22,9 +22,10 @@ A photography portfolio web application built with Next.js 14, React 18, and Typ
 - **Frontend:** Next.js 14, React 18, TypeScript
 - **Styling:** Tailwind CSS
 - **Authentication:** NextAuth.js
-- **Image Storage:** AWS S3
+- **Image Storage:** Backend API with S3
 - **Drag & Drop:** @dnd-kit
 - **Testing:** Jest, React Testing Library
+- **Logging:** Pino (structured JSON logging)
 
 ## Getting Started
 
@@ -32,8 +33,8 @@ A photography portfolio web application built with Next.js 14, React 18, and Typ
 
 - Node.js 20.x or later
 - npm or yarn
-- AWS account (for S3 storage)
-- Backend API running (GARA backend service)
+- Backend API running (GARA backend service with S3)
+- Docker and Docker Compose (optional, for containerized deployment)
 
 ### Installation
 
@@ -65,12 +66,14 @@ ADMIN_PASSWORD=your-secure-password
 NEXTAUTH_SECRET=your-nextauth-secret
 NEXTAUTH_URL=http://localhost:3000
 
-# AWS S3
-AWS_REGION=us-east-1
-AWS_ACCESS_KEY_ID=your-access-key
-AWS_SECRET_ACCESS_KEY=your-secret-key
-S3_BUCKET_NAME=your-bucket-name
+# Observability
+LOG_LEVEL=info
+ENABLE_REQUEST_LOGGING=true
+ENABLE_METRICS=false
+METRICS_BACKEND=console
 ```
+
+**Note:** The application requires a running backend API service. See the [backend API specification](docs/backend-api-spec.yaml) for implementation details.
 
 ### Development
 
@@ -197,14 +200,36 @@ vercel
 
 ### Docker
 
+#### Using Docker Compose (Recommended)
+
+```bash
+# Run in production mode
+docker-compose up
+
+# Run in development mode with hot reload
+docker-compose -f docker-compose.dev.yml up
+
+# Run in background
+docker-compose up -d
+
+# Stop containers
+docker-compose down
+```
+
+The application will be available at http://localhost:3000
+
+#### Using Docker CLI
+
 ```bash
 # Build Docker image
 docker build -t gara-frontend .
 
 # Run container
-docker run -p 3000:3000 \
+docker run -p 3000:80 \
   -e NEXT_PUBLIC_API_URL=http://backend:8080 \
-  -e GARA_API_KEY=your-key \
+  -e GARA_API_KEY=your-api-key \
+  -e ADMIN_PASSWORD=your-password \
+  -e NEXTAUTH_SECRET=your-secret \
   gara-frontend
 ```
 
@@ -263,7 +288,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Styled with [Tailwind CSS](https://tailwindcss.com/)
 - Authentication via [NextAuth.js](https://next-auth.js.org/)
 - Drag-and-drop powered by [@dnd-kit](https://dndkit.com/)
-- Cloud storage with [AWS S3](https://aws.amazon.com/s3/)
+- Structured logging with [Pino](https://getpino.io/)
 
 ## Support
 

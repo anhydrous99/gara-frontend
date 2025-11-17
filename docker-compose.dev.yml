@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: gara-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      # Application Configuration
+      NODE_ENV: development
+
+      # Backend API
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      GARA_API_KEY: ${GARA_API_KEY:-your-api-key-here}
+
+      # Authentication
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-secret-not-for-production}
+      NEXTAUTH_URL: http://localhost:3000
+
+      # Observability Configuration
+      LOG_LEVEL: debug
+      ENABLE_REQUEST_LOGGING: "true"
+      ENABLE_METRICS: "false"
+      METRICS_BACKEND: console
+    volumes:
+      # Mount source code for hot reload
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      # Persist logs
+      - ./logs:/app/logs
+    command: npm run dev
+    restart: unless-stopped
+
+networks:
+  default:
+    name: gara-network-dev

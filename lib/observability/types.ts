@@ -54,7 +54,7 @@ export interface ILogger {
 }
 
 /**
- * Metric types supported by CloudWatch
+ * Standard metric unit types
  */
 export enum MetricUnit {
   SECONDS = 'Seconds',
@@ -122,11 +122,7 @@ export interface ObservabilityConfig {
   logLevel: LogLevel
   enableMetrics: boolean
   enableRequestLogging: boolean
-  cloudWatch?: {
-    namespace: string
-    region: string
-    enabled: boolean
-  }
+  metricsBackend: 'console' | 'file' | string
 }
 
 /**

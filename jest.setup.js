@@ -5,8 +5,6 @@ process.env.NEXT_PUBLIC_API_URL = 'http://localhost:8080'
 process.env.GARA_API_KEY = 'test-api-key'
 process.env.ADMIN_PASSWORD = 'test-password'
 process.env.NEXTAUTH_SECRET = 'test-secret'
-process.env.AWS_REGION = 'us-east-1'
-process.env.S3_BUCKET_NAME = 'test-bucket'
 
 // Enhanced Headers polyfill for Next.js edge runtime compatibility
 if (typeof global.Headers === 'undefined') {

@@ -1,69 +1,43 @@
 /**
- * CloudWatch metrics client implementation
+ * Metrics client implementation with multiple backends
  * Follows Single Responsibility and Dependency Inversion principles
  */
 
-import {
-  CloudWatchClient,
-  PutMetricDataCommand,
-  PutMetricDataCommandInput,
-} from '@aws-sdk/client-cloudwatch'
 import { IMetricsClient, Metric, MetricDimension, MetricUnit } from './types'
 import { observabilityConfig } from './config'
 import { logger } from './logger'
 
 /**
- * CloudWatch metrics client implementation
- * Batches metrics and handles errors gracefully
+ * Console metrics client implementation
+ * Logs metrics to stdout for local development
  */
-export class CloudWatchMetricsClient implements IMetricsClient {
-  private readonly client: CloudWatchClient
+export class ConsoleMetricsClient implements IMetricsClient {
   private readonly namespace: string
   private readonly enabled: boolean
-  private metricsBuffer: Metric[] = []
-  private flushTimer: NodeJS.Timeout | null = null
 
-  private static readonly BUFFER_SIZE = 20 // CloudWatch max metrics per request
-  private static readonly FLUSH_INTERVAL_MS = 60000 // 1 minute
-
-  constructor(
-    namespace?: string,
-    region?: string,
-    enabled?: boolean
-  ) {
-    this.namespace = namespace ?? observabilityConfig.cloudWatch?.namespace ?? 'GaraFrontend'
-    this.enabled = enabled ?? observabilityConfig.cloudWatch?.enabled ?? false
-
-    this.client = new CloudWatchClient({
-      region: region ?? observabilityConfig.cloudWatch?.region ?? 'us-east-1',
-    })
-
-    // Start periodic flush
-    if (this.enabled) {
-      this.startPeriodicFlush()
-    }
+  constructor(namespace?: string, enabled?: boolean) {
+    this.namespace = namespace ?? 'GaraFrontend'
+    this.enabled = enabled ?? true
   }
 
-  /**
-   * Publishes a single metric to CloudWatch
-   * Buffers metrics and flushes when buffer is full
-   */
   async putMetric(metric: Metric): Promise<void> {
     if (!this.enabled) {
-      logger.debug('Metrics disabled, skipping metric', { metric: metric.name })
       return
     }
 
-    this.metricsBuffer.push(metric)
+    const dimensions = metric.dimensions
+      ?.map((dim) => `${dim.name}=${dim.value}`)
+      .join(', ')
 
-    if (this.metricsBuffer.length >= CloudWatchMetricsClient.BUFFER_SIZE) {
-      await this.flush()
-    }
+    logger.debug('Metric recorded', {
+      namespace: this.namespace,
+      metric: metric.name,
+      value: metric.value,
+      unit: metric.unit,
+      dimensions: dimensions || 'none',
+    })
   }
 
-  /**
-   * Tracks operation duration in milliseconds
-   */
   async trackDuration(
     name: string,
     durationMs: number,
@@ -78,9 +52,6 @@ export class CloudWatchMetricsClient implements IMetricsClient {
     })
   }
 
-  /**
-   * Tracks a count metric (e.g., requests, errors)
-   */
   async trackCount(
     name: string,
     count: number,
@@ -95,9 +66,76 @@ export class CloudWatchMetricsClient implements IMetricsClient {
     })
   }
 
-  /**
-   * Tracks error occurrences with automatic categorization
-   */
+  async trackError(operation: string, error: Error): Promise<void> {
+    await this.trackCount('Errors', 1, [
+      { name: 'Operation', value: operation },
+      { name: 'ErrorType', value: error.name },
+    ])
+  }
+}
+
+/**
+ * File-based metrics client implementation
+ * Writes metrics to a JSON file for local development
+ */
+export class FileMetricsClient implements IMetricsClient {
+  private readonly namespace: string
+  private readonly enabled: boolean
+  private metricsBuffer: Metric[] = []
+  private flushTimer: NodeJS.Timeout | null = null
+
+  private static readonly BUFFER_SIZE = 100
+  private static readonly FLUSH_INTERVAL_MS = 60000 // 1 minute
+
+  constructor(namespace?: string, enabled?: boolean) {
+    this.namespace = namespace ?? 'GaraFrontend'
+    this.enabled = enabled ?? true
+
+    if (this.enabled) {
+      this.startPeriodicFlush()
+    }
+  }
+
+  async putMetric(metric: Metric): Promise<void> {
+    if (!this.enabled) {
+      return
+    }
+
+    this.metricsBuffer.push(metric)
+
+    if (this.metricsBuffer.length >= FileMetricsClient.BUFFER_SIZE) {
+      await this.flush()
+    }
+  }
+
+  async trackDuration(
+    name: string,
+    durationMs: number,
+    dimensions?: MetricDimension[]
+  ): Promise<void> {
+    await this.putMetric({
+      name,
+      value: durationMs,
+      unit: MetricUnit.MILLISECONDS,
+      dimensions,
+      timestamp: new Date(),
+    })
+  }
+
+  async trackCount(
+    name: string,
+    count: number,
+    dimensions?: MetricDimension[]
+  ): Promise<void> {
+    await this.putMetric({
+      name,
+      value: count,
+      unit: MetricUnit.COUNT,
+      dimensions,
+      timestamp: new Date(),
+    })
+  }
+
   async trackError(operation: string, error: Error): Promise<void> {
     await this.trackCount('Errors', 1, [
       { name: 'Operation', value: operation },
@@ -105,9 +143,6 @@ export class CloudWatchMetricsClient implements IMetricsClient {
     ])
   }
 
-  /**
-   * Flushes buffered metrics to CloudWatch
-   */
   private async flush(): Promise<void> {
     if (this.metricsBuffer.length === 0) {
       return
@@ -117,29 +152,39 @@ export class CloudWatchMetricsClient implements IMetricsClient {
     this.metricsBuffer = []
 
     try {
-      const input: PutMetricDataCommandInput = {
-        Namespace: this.namespace,
-        MetricData: metricsToFlush.map((metric) => ({
-          MetricName: metric.name,
-          Value: metric.value,
-          Unit: metric.unit,
-          Timestamp: metric.timestamp ?? new Date(),
-          Dimensions: metric.dimensions?.map((dim) => ({
-            Name: dim.name,
-            Value: dim.value,
-          })),
-        })),
+      const fs = await import('fs/promises')
+      const path = await import('path')
+
+      const metricsDir = path.join(process.cwd(), 'logs')
+      const metricsFile = path.join(metricsDir, 'metrics.jsonl')
+
+      // Ensure logs directory exists
+      try {
+        await fs.mkdir(metricsDir, { recursive: true })
+      } catch {
+        // Directory might already exist
       }
 
-      const command = new PutMetricDataCommand(input)
-      await this.client.send(command)
+      // Append metrics to file as newline-delimited JSON
+      const lines = metricsToFlush.map((metric) =>
+        JSON.stringify({
+          namespace: this.namespace,
+          timestamp: metric.timestamp?.toISOString() || new Date().toISOString(),
+          name: metric.name,
+          value: metric.value,
+          unit: metric.unit,
+          dimensions: metric.dimensions,
+        })
+      )
 
-      logger.debug('Flushed metrics to CloudWatch', {
+      await fs.appendFile(metricsFile, lines.join('\n') + '\n')
+
+      logger.debug('Flushed metrics to file', {
         count: metricsToFlush.length,
-        namespace: this.namespace,
+        file: metricsFile,
       })
     } catch (error) {
-      logger.error('Failed to flush metrics to CloudWatch', error as Error, {
+      logger.error('Failed to flush metrics to file', error as Error, {
         metricsCount: metricsToFlush.length,
       })
 
@@ -148,24 +193,17 @@ export class CloudWatchMetricsClient implements IMetricsClient {
     }
   }
 
-  /**
-   * Starts periodic flush timer
-   */
   private startPeriodicFlush(): void {
     this.flushTimer = setInterval(() => {
       this.flush().catch((error) => {
         logger.error('Periodic metrics flush failed', error as Error)
       })
-    }, CloudWatchMetricsClient.FLUSH_INTERVAL_MS)
+    }, FileMetricsClient.FLUSH_INTERVAL_MS)
 
     // Prevent timer from keeping process alive
     this.flushTimer.unref()
   }
 
-  /**
-   * Gracefully shutdown metrics client
-   * Flushes remaining metrics
-   */
   async shutdown(): Promise<void> {
     if (this.flushTimer) {
       clearInterval(this.flushTimer)
@@ -208,12 +246,25 @@ function createMetricsClient(): IMetricsClient {
     return new NoOpMetricsClient()
   }
 
-  // Server-side - use CloudWatch if enabled
-  if (observabilityConfig.cloudWatch?.enabled) {
-    return new CloudWatchMetricsClient()
+  // Check if metrics are enabled
+  if (!observabilityConfig.enableMetrics) {
+    return new NoOpMetricsClient()
   }
 
-  return new NoOpMetricsClient()
+  // Determine backend type from config
+  const metricsBackend = observabilityConfig.metricsBackend
+
+  switch (metricsBackend) {
+    case 'console':
+      return new ConsoleMetricsClient()
+    case 'file':
+      return new FileMetricsClient()
+    default:
+      logger.warn('Unknown metrics backend, using NoOp client', {
+        backend: metricsBackend,
+      })
+      return new NoOpMetricsClient()
+  }
 }
 
 /**
@@ -255,7 +306,7 @@ export async function trackOperation<T>(
  */
 if (typeof process !== 'undefined') {
   const shutdownHandler = async () => {
-    if (metricsClient instanceof CloudWatchMetricsClient) {
+    if (metricsClient instanceof FileMetricsClient) {
       await metricsClient.shutdown()
     }
   }

@@ -34,7 +34,7 @@ export function initializeObservability(): void {
       logLevel: observabilityConfig.logLevel,
       metricsEnabled: observabilityConfig.enableMetrics,
       requestLoggingEnabled: observabilityConfig.enableRequestLogging,
-      cloudWatchEnabled: observabilityConfig.cloudWatch?.enabled ?? false,
+      metricsBackend: observabilityConfig.metricsBackend,
       nodeEnv: process.env.NODE_ENV,
     })
 

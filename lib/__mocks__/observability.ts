@@ -43,9 +43,5 @@ export const observabilityConfig = {
   logLevel: 'info',
   enableMetrics: false,
   enableRequestLogging: true,
-  cloudWatch: {
-    namespace: 'Test',
-    region: 'us-east-1',
-    enabled: false,
-  },
+  metricsBackend: 'console',
 }
