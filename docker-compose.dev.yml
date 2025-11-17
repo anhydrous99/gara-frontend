@@ -13,19 +13,14 @@ services:
       # Application Configuration
       NODE_ENV: development
 
-      # Backend API (optional)
-      # NEXT_PUBLIC_API_URL: http://localhost:8080
-      # GARA_API_KEY: your-api-key-here
+      # Backend API
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8080}
+      GARA_API_KEY: ${GARA_API_KEY:-your-api-key-here}
 
       # Authentication
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-dev-secret-not-for-production}
       NEXTAUTH_URL: http://localhost:3000
-
-      # Local Storage Configuration
-      USE_LOCAL_STORAGE: "true"
-      UPLOADS_DIR: /app/public/uploads
-      UPLOADS_PUBLIC_PATH: /uploads
 
       # Observability Configuration
       LOG_LEVEL: debug
@@ -37,8 +32,6 @@ services:
       - .:/app
       - /app/node_modules
       - /app/.next
-      # Persist uploaded images
-      - ./public/uploads:/app/public/uploads
       # Persist logs
       - ./logs:/app/logs
     command: npm run dev

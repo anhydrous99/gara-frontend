@@ -13,19 +13,14 @@ services:
       NODE_ENV: production
       PORT: 80
 
-      # Backend API (optional - only if USE_LOCAL_STORAGE=false)
-      # NEXT_PUBLIC_API_URL: http://backend:8080
-      # GARA_API_KEY: your-api-key-here
+      # Backend API
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://backend:8080}
+      GARA_API_KEY: ${GARA_API_KEY:-your-api-key-here}
 
       # Authentication
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET:-your-nextauth-secret-change-in-production}
       NEXTAUTH_URL: http://localhost:3000
-
-      # Local Storage Configuration
-      USE_LOCAL_STORAGE: "true"
-      UPLOADS_DIR: /app/public/uploads
-      UPLOADS_PUBLIC_PATH: /uploads
 
       # Observability Configuration
       LOG_LEVEL: info
@@ -33,9 +28,7 @@ services:
       ENABLE_METRICS: "false"
       METRICS_BACKEND: console
     volumes:
-      # Persist uploaded images
-      - ./public/uploads:/app/public/uploads
-      # Optional: Persist logs if using file-based metrics
+      # Persist logs if using file-based metrics
       - ./logs:/app/logs
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80"]

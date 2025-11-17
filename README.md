@@ -22,7 +22,7 @@ A photography portfolio web application built with Next.js 14, React 18, and Typ
 - **Frontend:** Next.js 14, React 18, TypeScript
 - **Styling:** Tailwind CSS
 - **Authentication:** NextAuth.js
-- **Image Storage:** Local File System (configurable to use backend API)
+- **Image Storage:** Backend API with S3
 - **Drag & Drop:** @dnd-kit
 - **Testing:** Jest, React Testing Library
 - **Logging:** Pino (structured JSON logging)
@@ -33,6 +33,7 @@ A photography portfolio web application built with Next.js 14, React 18, and Typ
 
 - Node.js 20.x or later
 - npm or yarn
+- Backend API running (GARA backend service with S3)
 - Docker and Docker Compose (optional, for containerized deployment)
 
 ### Installation
@@ -56,28 +57,23 @@ cp .env.example .env.local
 Create a `.env.local` file with:
 
 ```env
+# Backend API
+NEXT_PUBLIC_API_URL=http://localhost:8080
+GARA_API_KEY=your-api-key
+
 # Authentication
 ADMIN_PASSWORD=your-secure-password
 NEXTAUTH_SECRET=your-nextauth-secret
 NEXTAUTH_URL=http://localhost:3000
-
-# Local Storage (recommended for local development)
-USE_LOCAL_STORAGE=true
-UPLOADS_DIR=./public/uploads
-UPLOADS_PUBLIC_PATH=/uploads
 
 # Observability
 LOG_LEVEL=info
 ENABLE_REQUEST_LOGGING=true
 ENABLE_METRICS=false
 METRICS_BACKEND=console
-
-# Backend API (optional - only if USE_LOCAL_STORAGE=false)
-# NEXT_PUBLIC_API_URL=http://localhost:8080
-# GARA_API_KEY=your-api-key
 ```
 
-**Note:** The application now stores images locally in the `public/uploads` directory by default. You can optionally configure it to use a backend API by setting `USE_LOCAL_STORAGE=false` and providing backend API configuration.
+**Note:** The application requires a running backend API service. See the [backend API specification](docs/backend-api-spec.yaml) for implementation details.
 
 ### Development
 
@@ -230,10 +226,10 @@ docker build -t gara-frontend .
 
 # Run container
 docker run -p 3000:80 \
-  -e USE_LOCAL_STORAGE=true \
+  -e NEXT_PUBLIC_API_URL=http://backend:8080 \
+  -e GARA_API_KEY=your-api-key \
   -e ADMIN_PASSWORD=your-password \
   -e NEXTAUTH_SECRET=your-secret \
-  -v $(pwd)/public/uploads:/app/public/uploads \
   gara-frontend
 ```
 
