@@ -12,8 +12,7 @@ const ENV_KEYS = {
   LOG_LEVEL: 'LOG_LEVEL',
   ENABLE_METRICS: 'ENABLE_METRICS',
   ENABLE_REQUEST_LOGGING: 'ENABLE_REQUEST_LOGGING',
-  CLOUDWATCH_NAMESPACE: 'CLOUDWATCH_NAMESPACE',
-  AWS_REGION: 'AWS_REGION',
+  METRICS_BACKEND: 'METRICS_BACKEND',
   NODE_ENV: 'NODE_ENV',
 } as const
 
@@ -44,23 +43,6 @@ function parseBoolean(value: string | undefined, defaultValue: boolean): boolean
 }
 
 /**
- * Validates required environment variables for CloudWatch
- */
-function validateCloudWatchConfig(): boolean {
-  const namespace = process.env[ENV_KEYS.CLOUDWATCH_NAMESPACE]
-  const region = process.env[ENV_KEYS.AWS_REGION]
-
-  if (!namespace || !region) {
-    console.warn(
-      'CloudWatch metrics disabled: CLOUDWATCH_NAMESPACE and AWS_REGION must be set'
-    )
-    return false
-  }
-
-  return true
-}
-
-/**
  * Loads and validates observability configuration from environment
  *
  * @returns Validated observability configuration
@@ -68,23 +50,18 @@ function validateCloudWatchConfig(): boolean {
  */
 export function loadConfig(): ObservabilityConfig {
   const logLevel = parseLogLevel(process.env[ENV_KEYS.LOG_LEVEL])
-  const enableMetrics = parseBoolean(process.env[ENV_KEYS.ENABLE_METRICS], true)
+  const enableMetrics = parseBoolean(process.env[ENV_KEYS.ENABLE_METRICS], false)
   const enableRequestLogging = parseBoolean(
     process.env[ENV_KEYS.ENABLE_REQUEST_LOGGING],
     true
   )
-
-  const cloudWatchEnabled = enableMetrics && validateCloudWatchConfig()
+  const metricsBackend = process.env[ENV_KEYS.METRICS_BACKEND] || 'console'
 
   const config: ObservabilityConfig = {
     logLevel,
     enableMetrics,
     enableRequestLogging,
-    cloudWatch: {
-      namespace: process.env[ENV_KEYS.CLOUDWATCH_NAMESPACE] || 'GaraFrontend',
-      region: process.env[ENV_KEYS.AWS_REGION] || 'us-east-1',
-      enabled: cloudWatchEnabled,
-    },
+    metricsBackend,
   }
 
   return config

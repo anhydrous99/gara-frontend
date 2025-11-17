@@ -20,8 +20,6 @@ This directory contains CI/CD workflows for the GARA Frontend project.
 - `GARA_API_KEY` - API key for backend (use GitHub Secrets)
 - `ADMIN_PASSWORD` - Admin password (use GitHub Secrets)
 - `NEXTAUTH_SECRET` - NextAuth secret (use GitHub Secrets)
-- `AWS_REGION` - AWS region for S3
-- `S3_BUCKET_NAME` - S3 bucket name (use GitHub Secrets)
 
 ### 📊 coverage.yml - Coverage Reporting
 
@@ -63,7 +61,6 @@ Add these secrets:
 - `GARA_API_KEY` - Your backend API key
 - `ADMIN_PASSWORD` - Admin login password
 - `NEXTAUTH_SECRET` - Secret for NextAuth (generate with `openssl rand -base64 32`)
-- `S3_BUCKET_NAME` - Your AWS S3 bucket name
 - `CODECOV_TOKEN` (optional) - For Codecov integration
 
 ### 2. Enable GitHub Actions

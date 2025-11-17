@@ -34,7 +34,7 @@ COPY --from=builder /app/node_modules ./node_modules
 RUN mkdir -p ./public
 
 # Environment variables
-# Note: Sensitive values should be set via ECS task definition, not here
+# Note: Sensitive values should be set via container orchestration, not here
 ENV NODE_ENV=production
 ENV PORT=80
 
@@ -42,11 +42,11 @@ ENV PORT=80
 EXPOSE 80
 
 # Health check
-# ECS uses this to determine container health
+# Container orchestration platforms use this to determine container health
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:80', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Start Next.js server
-# Logs go to stdout/stderr and are captured by ECS awslogs driver
+# Logs go to stdout/stderr for container logging
 # Next.js handles signal forwarding for graceful shutdown
 CMD ["npm", "start"]

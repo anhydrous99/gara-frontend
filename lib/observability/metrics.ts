@@ -247,14 +247,12 @@ function createMetricsClient(): IMetricsClient {
   }
 
   // Check if metrics are enabled
-  const metricsEnabled = observabilityConfig.cloudWatch?.enabled ?? false
-
-  if (!metricsEnabled) {
+  if (!observabilityConfig.enableMetrics) {
     return new NoOpMetricsClient()
   }
 
-  // Determine backend type from environment variable
-  const metricsBackend = process.env.METRICS_BACKEND || 'console'
+  // Determine backend type from config
+  const metricsBackend = observabilityConfig.metricsBackend
 
   switch (metricsBackend) {
     case 'console':
