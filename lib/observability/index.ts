@@ -13,7 +13,8 @@ export { logger, createRequestLogger, Logger, BrowserLogger } from './logger'
 export {
   metricsClient,
   trackOperation,
-  CloudWatchMetricsClient,
+  ConsoleMetricsClient,
+  FileMetricsClient,
   NoOpMetricsClient,
 } from './metrics'
 
